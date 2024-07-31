@@ -301,34 +301,66 @@ WHERE p.precio_venta > (
 
 #### Consultar los clientes que han gastado más del promedio general en sus compras
 ```sql
-SELECT p.id, p.nombre, p.total
+SELECT cli.id as clienteID, cli.nombre, cp.total
 FROM compras_productos cp
 JOIN compras c ON cp.id_compra = c.id
 JOIN clientes cli ON cli.id = c.id_cliente
-WHERE p.precio_venta > (
-    SELECT SUM(precio_venta)
-    FROM clientes
+WHERE cp.total > (
+    SELECT AVG(cp.total)
+    FROM compras_productos cp
+    JOIN compras c ON cp.id_compra = c.id
+    JOIN clientes clisub ON clisub.id = c.id_cliente
 );
 ```
 
 #### Consultar las categorías que tienen más de 5 productos
 ```sql
-
+SELECT id, descripcion 
+FROM categorias 
+WHERE id_categoria IN (
+    SELECT id_categoria 
+    FROM productos 
+    GROUP BY id_categoria 
+    HAVING COUNT(id_producto) > 5);
 ```
 
 #### Consultar los productos más vendidos (top 5) por categoría
 ```sql
-
+SELECT p.id_categoria, p.nombre, 
+       (SELECT SUM(cantidad)
+        FROM compras_productos cp
+        WHERE cp.id_producto = p.id) as total_vendido
+FROM productos p
+WHERE p.id_categoria = 1
+GROUP BY p.id_categoria, p.id
+ORDER BY p.id_categoria, total_vendido DESC
+LIMIT 5;
 ```
 
 #### Consultar los clientes que han realizado compras en los últimos 30 días
 ```sql
-
+SELECT c.id, c.nombre
+FROM clientes c
+WHERE c.id IN (
+    SELECT co.id_cliente
+    FROM compras co
+    WHERE TIMESTAMPDIFF(MONTH, co.fecha, CURDATE()) = 0
+);
 ```
 
 #### Consultar las compras y sus productos para un cliente específico, mostrando solo las compras más recientes
 ```sql
-
+SELECT cli.id, cli.nombre, p.id, p.nombre, c.id
+FROM compras c
+JOIN compras_productos cp ON c.id = cp.id_compra
+JOIN clientes cli ON c.id_cliente = cli.id
+JOIN productos p ON p.id = cp.id_producto
+WHERE c.id IN (
+    SELECT c.id
+    FROM compras
+    WHERE c.id_cliente = 'C001'
+)
+ORDER BY c.fecha DESC;
 ```
 
 #### Consultar las categorías que tienen productos con un stock por debajo del promedio general
